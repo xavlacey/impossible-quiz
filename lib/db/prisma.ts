@@ -5,16 +5,11 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 // Configure Prisma Client with connection pooling for serverless
+// Prisma automatically reads DB_URL from environment (defined in schema.prisma)
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-    // Ensure proper connection handling
-    datasources: {
-      db: {
-        url: process.env.DB_URL,
-      },
-    },
   });
 
 if (process.env.NODE_ENV !== "production") {
