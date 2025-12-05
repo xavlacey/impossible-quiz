@@ -80,12 +80,22 @@ export default function HostDashboard() {
     const fetchStatus = async () => {
       try {
         const response = await fetch(`/api/quiz/host/${hostId}/status`);
-        const data = await response.json();
 
         if (!response.ok) {
-          setError(data.error || "Failed to load party");
+          const errorData = await response
+            .json()
+            .catch(() => ({ error: `HTTP ${response.status}` }));
+          console.error("API error response:", {
+            status: response.status,
+            error: errorData,
+          });
+          setError(
+            errorData.error || `Failed to load party (${response.status})`
+          );
           return;
         }
+
+        const data = await response.json();
 
         setParty(data.party);
         setContestants(data.contestants);
