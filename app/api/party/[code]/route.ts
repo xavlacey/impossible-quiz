@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { isValidPartyCode } from "@/lib/utils/codeGenerator";
 
+export const dynamic = "force-dynamic";
+
 type Params = {
   params: Promise<{
     code: string;
@@ -37,10 +39,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     });
 
     if (!party) {
-      return NextResponse.json(
-        { error: "Party not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Party not found" }, { status: 404 });
     }
 
     return NextResponse.json({

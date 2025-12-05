@@ -45,8 +45,8 @@ cp .env.example .env
 
 Update the following in `.env`:
 
-- `DATABASE_URL`: Your PostgreSQL connection string
-- `PUSHER_APP_ID`, `PUSHER_SECRET`, `NEXT_PUBLIC_PUSHER_KEY`, `NEXT_PUBLIC_PUSHER_CLUSTER`: Get these from [Pusher Dashboard](https://dashboard.pusher.com)
+- `DB_URL`: Your PostgreSQL connection string
+- `PUSHER_APP_ID`, `PUSHER_SECRET`, `PUSHER_KEY`, `PUSHER_CLUSTER`: Get these from [Pusher Dashboard](https://dashboard.pusher.com)
 
 3. **Set up the database:**
 
@@ -81,6 +81,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ### Scoring System
 
 For each question:
+
 - **Nearest answer**: 10 points
 - **Within ±10% of correct answer**: 15 points
 - **Both (nearest AND within 10%)**: 25 points total
