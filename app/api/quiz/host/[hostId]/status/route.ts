@@ -55,3 +55,42 @@ export async function GET(request: NextRequest, { params }: Params) {
     );
   }
 }
+
+export async function PUT(request: NextRequest, { params }: Params) {
+  try {
+    const { hostId } = await params;
+    const body = await request.json();
+    const { status } = body;
+
+    if (!status || !["LOBBY", "ACTIVE", "FINISHED"].includes(status)) {
+      return NextResponse.json(
+        { error: "Invalid status" },
+        { status: 400 }
+      );
+    }
+
+    const party = await prisma.party.findUnique({
+      where: { hostId },
+    });
+
+    if (!party) {
+      return NextResponse.json({ error: "Party not found" }, { status: 404 });
+    }
+
+    await prisma.party.update({
+      where: { hostId },
+      data: { status },
+    });
+
+    return NextResponse.json({
+      success: true,
+      status,
+    });
+  } catch (error) {
+    console.error("Error updating party status:", error);
+    return NextResponse.json(
+      { error: "Failed to update party status" },
+      { status: 500 }
+    );
+  }
+}

@@ -328,7 +328,31 @@ export default function HostDashboard() {
           </div>
 
           <button
-            onClick={() => setShowEndQuizModal(true)}
+            onClick={async () => {
+              // Update party status to FINISHED to lock all answers
+              try {
+                await fetch(`/api/quiz/host/${hostId}/current-question`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ currentQuestion: party.currentQuestion }),
+                });
+
+                // Update status to FINISHED
+                const response = await fetch(`/api/quiz/host/${hostId}/status`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ status: "FINISHED" }),
+                });
+
+                if (response.ok) {
+                  setParty({ ...party, status: "FINISHED" });
+                }
+              } catch (err) {
+                console.error("Failed to lock quiz:", err);
+              }
+
+              setShowEndQuizModal(true);
+            }}
             className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 transition"
           >
             End Quiz & Enter Answers
@@ -415,29 +439,30 @@ export default function HostDashboard() {
                 </div>
               ))}
 
-              {/* Current question input */}
-              {currentRevealQuestion <= party.totalQuestions && (
-                <div className="mb-6 p-4 border-2 border-blue-500 rounded-lg bg-blue-50">
-                  <label className="block text-lg font-semibold text-gray-800 mb-2">
-                    What is the correct answer for Question{" "}
-                    {currentRevealQuestion}?
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={correctAnswers[currentRevealQuestion] || ""}
-                    onChange={(e) =>
-                      setCorrectAnswers((prev) => ({
-                        ...prev,
-                        [currentRevealQuestion]: e.target.value,
-                      }))
-                    }
-                    placeholder="Enter correct answer"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
-                    autoFocus
-                  />
-                </div>
-              )}
+              {/* Current question input - only show if we haven't revealed it yet */}
+              {currentRevealQuestion <= party.totalQuestions &&
+                questionResults.length < currentRevealQuestion && (
+                  <div className="mb-6 p-4 border-2 border-blue-500 rounded-lg bg-blue-50">
+                    <label className="block text-lg font-semibold text-gray-800 mb-2">
+                      What is the correct answer for Question{" "}
+                      {currentRevealQuestion}?
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={correctAnswers[currentRevealQuestion] || ""}
+                      onChange={(e) =>
+                        setCorrectAnswers((prev) => ({
+                          ...prev,
+                          [currentRevealQuestion]: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter correct answer"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                      autoFocus
+                    />
+                  </div>
+                )}
 
               <div className="flex gap-3">
                 <button
