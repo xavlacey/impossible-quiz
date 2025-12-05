@@ -175,13 +175,26 @@ export default function PlayerView() {
     [contestantId]
   );
 
+  const formatInputValue = (value: number | undefined): string => {
+    if (value === undefined || isNaN(value)) return "";
+    return value.toLocaleString("en-US");
+  };
+
+  const parseInputValue = (value: string): number | null => {
+    // Remove commas and parse
+    const cleaned = value.replace(/,/g, "");
+    if (cleaned === "" || cleaned === "-") return null;
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? null : num;
+  };
+
   const handleAnswerChange = (questionNumber: number, value: string) => {
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue)) {
+    const numValue = parseInputValue(value);
+    if (numValue !== null) {
       setAnswers((prev) => new Map(prev).set(questionNumber, numValue));
       // Auto-save after 500ms of no typing
       setTimeout(() => saveAnswer(questionNumber, numValue), 500);
-    } else if (value === "" || value === "-") {
+    } else {
       // Allow empty or just minus sign while typing
       setAnswers((prev) => {
         const newMap = new Map(prev);
@@ -286,14 +299,14 @@ export default function PlayerView() {
                     </div>
                   </div>
                   <input
-                    type="number"
-                    step="any"
+                    type="text"
+                    inputMode="numeric"
                     placeholder={
                       isLocked
                         ? "Question not yet revealed"
                         : "Enter your answer"
                     }
-                    value={answers.get(questionNum) ?? ""}
+                    value={formatInputValue(answers.get(questionNum))}
                     onChange={(e) =>
                       handleAnswerChange(questionNum, e.target.value)
                     }

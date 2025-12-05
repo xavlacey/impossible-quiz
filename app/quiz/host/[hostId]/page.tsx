@@ -40,6 +40,18 @@ export default function HostDashboard() {
   const [correctAnswers, setCorrectAnswers] = useState<Record<number, string>>(
     {}
   );
+
+  const formatInputValue = (value: string | undefined): string => {
+    if (!value || value === "") return "";
+    const num = parseFloat(value.replace(/,/g, ""));
+    if (isNaN(num)) return value; // Return as-is if not a valid number
+    return num.toLocaleString("en-US");
+  };
+
+  const parseInputValue = (value: string): string => {
+    // Remove commas for storage, but allow other characters for partial input
+    return value.replace(/,/g, "");
+  };
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(
     null
@@ -183,7 +195,12 @@ export default function HostDashboard() {
     setError("");
 
     const answer = correctAnswers[currentRevealQuestion];
-    if (!answer || answer.trim() === "" || isNaN(Number(answer))) {
+    const parsedAnswer = answer ? parseInputValue(answer) : "";
+    if (
+      !parsedAnswer ||
+      parsedAnswer.trim() === "" ||
+      isNaN(Number(parsedAnswer))
+    ) {
       setError(
         `Please enter a valid answer for question ${currentRevealQuestion}`
       );
@@ -197,7 +214,7 @@ export default function HostDashboard() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ correctAnswer: Number(answer) }),
+          body: JSON.stringify({ correctAnswer: Number(parsedAnswer) }),
         }
       );
 
@@ -616,15 +633,18 @@ export default function HostDashboard() {
                       {currentRevealQuestion}?
                     </label>
                     <input
-                      type="number"
-                      step="any"
-                      value={correctAnswers[currentRevealQuestion] || ""}
-                      onChange={(e) =>
+                      type="text"
+                      inputMode="numeric"
+                      value={formatInputValue(
+                        correctAnswers[currentRevealQuestion]
+                      )}
+                      onChange={(e) => {
+                        const parsed = parseInputValue(e.target.value);
                         setCorrectAnswers((prev) => ({
                           ...prev,
-                          [currentRevealQuestion]: e.target.value,
-                        }))
-                      }
+                          [currentRevealQuestion]: parsed,
+                        }));
+                      }}
                       placeholder="Enter correct answer"
                       className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base sm:text-lg"
                       autoFocus

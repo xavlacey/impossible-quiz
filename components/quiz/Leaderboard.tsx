@@ -101,15 +101,15 @@ export default function Leaderboard({
       {correctAnswers && (
         <div className="mt-6 pt-6 border-t">
           <h3 className="font-semibold mb-3 text-gray-700">Correct Answers:</h3>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+          <div className="space-y-2">
             {Array.from({ length: totalQuestions }, (_, i) => i + 1).map(
               (q) => (
                 <div
                   key={q}
-                  className="text-center p-2 bg-gray-50 rounded border border-gray-200 min-w-0"
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200 w-full"
                 >
-                  <div className="text-xs text-gray-600">Q{q}</div>
-                  <div className="font-semibold text-gray-900 break-words break-all">
+                  <div className="text-sm font-medium text-gray-700">Q{q}</div>
+                  <div className="font-semibold text-gray-900">
                     {formatNumber(correctAnswers[q])}
                   </div>
                 </div>
