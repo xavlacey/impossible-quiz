@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Party {
+  id              String      @id @default(cuid())
+  code            String      @unique
+  hostId          String      @unique
+  createdAt       DateTime    @default(now())
+  status          String      @default("LOBBY")
+  currentQuestion Int         @default(1)
+  totalQuestions  Int         @default(10)
+  correctAnswers  String?
+  contestants     Contestant[]
+  answers         Answer[]
+}
+
+model Contestant {
+  id        String   @id @default(cuid())
+  name      String
+  partyId   String
+  party     Party    @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  answers   Answer[]
+  createdAt DateTime @default(now())
+
+  @@unique([partyId, name])
+}
+
+model Answer {
+  id             String     @id @default(cuid())
+  partyId        String
+  party          Party      @relation(fields: [partyId], references: [id], onDelete: Cascade)
+  contestantId   String
+  contestant     Contestant @relation(fields: [contestantId], references: [id], onDelete: Cascade)
+  questionNumber Int
+  value          Float
+  submittedAt    DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@unique([partyId, contestantId, questionNumber])
+}
+
