@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
+import Leaderboard from "@/components/quiz/Leaderboard";
 
 type Answer = {
   questionNumber: number;
@@ -17,6 +18,13 @@ type PartyData = {
   totalQuestions: number;
 };
 
+type LeaderboardEntry = {
+  contestantId: string;
+  contestantName: string;
+  totalScore: number;
+  questionScores: number[];
+};
+
 export default function PlayerView() {
   const params = useParams();
   const contestantId = params.contestantId as string;
@@ -27,8 +35,10 @@ export default function PlayerView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [savingStatus, setSavingStatus] = useState<Map<number, boolean>>(new Map());
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null);
+  const [correctAnswersMap, setCorrectAnswersMap] = useState<Record<number, number> | null>(null);
 
-  // Fetch initial data
+  // Fetch initial data and poll for status
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -48,6 +58,19 @@ export default function PlayerView() {
           answerMap.set(a.questionNumber, a.value);
         });
         setAnswers(answerMap);
+
+        // If quiz is finished, fetch leaderboard
+        if (data.party.status === "FINISHED" && !leaderboard) {
+          const leaderboardResponse = await fetch(
+            `/api/quiz/player/${contestantId}/leaderboard`
+          );
+          const leaderboardData = await leaderboardResponse.json();
+
+          if (leaderboardResponse.ok) {
+            setLeaderboard(leaderboardData.leaderboard);
+            setCorrectAnswersMap(leaderboardData.correctAnswers);
+          }
+        }
       } catch (err) {
         setError("Failed to load quiz data");
       } finally {
@@ -56,7 +79,10 @@ export default function PlayerView() {
     };
 
     fetchData();
-  }, [contestantId]);
+    // Poll every 2 seconds to check for quiz end
+    const interval = setInterval(fetchData, 2000);
+    return () => clearInterval(interval);
+  }, [contestantId, leaderboard]);
 
   const saveAnswer = useCallback(async (questionNumber: number, value: number) => {
     setSavingStatus(prev => new Map(prev).set(questionNumber, true));
@@ -114,6 +140,22 @@ export default function PlayerView() {
     );
   }
 
+  // Show leaderboard if quiz is finished
+  if (party.status === "FINISHED" && leaderboard && correctAnswersMap) {
+    return (
+      <main className="min-h-screen p-4 bg-gray-50">
+        <div className="max-w-4xl mx-auto">
+          <Leaderboard
+            leaderboard={leaderboard}
+            totalQuestions={party.totalQuestions}
+            correctAnswers={correctAnswersMap}
+            showQuestionBreakdown={false}
+          />
+        </div>
+      </main>
+    );
+  }
+
   const answeredCount = answers.size;
 
   return (
@@ -143,24 +185,31 @@ export default function PlayerView() {
               const hasAnswer = answers.has(questionNum);
               const isSaving = savingStatus.get(questionNum);
               const isCurrent = questionNum === party.currentQuestion;
+              const isLocked = questionNum > party.currentQuestion;
+              const isDisabled = party.status === "FINISHED" || isLocked;
 
               return (
                 <div
                   key={questionNum}
                   className={`bg-white rounded-lg shadow p-4 ${
                     isCurrent ? "ring-2 ring-blue-500" : ""
-                  }`}
+                  } ${isLocked ? "opacity-60" : ""}`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold">Question {questionNum}</h3>
                     <div className="flex items-center gap-2">
-                      {isSaving && (
+                      {isLocked && (
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                          🔒 Locked
+                        </span>
+                      )}
+                      {!isLocked && isSaving && (
                         <span className="text-xs text-gray-500">Saving...</span>
                       )}
-                      {hasAnswer && !isSaving && (
+                      {!isLocked && hasAnswer && !isSaving && (
                         <span className="text-green-600 text-xl">✓</span>
                       )}
-                      {isCurrent && (
+                      {isCurrent && !isLocked && (
                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                           CURRENT
                         </span>
@@ -170,10 +219,11 @@ export default function PlayerView() {
                   <input
                     type="number"
                     step="any"
-                    placeholder="Enter your answer"
+                    placeholder={isLocked ? "Question not yet revealed" : "Enter your answer"}
                     value={answers.get(questionNum) ?? ""}
                     onChange={(e) => handleAnswerChange(questionNum, e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                    disabled={isDisabled}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />
                 </div>
               );
