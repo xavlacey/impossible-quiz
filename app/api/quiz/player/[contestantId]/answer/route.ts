@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { pusherServer } from "@/lib/pusher/server";
 
 type Params = {
   params: Promise<{
@@ -21,13 +22,6 @@ export async function PUT(request: NextRequest, { params }: Params) {
       );
     }
 
-    if (value === undefined || value === null || isNaN(Number(value))) {
-      return NextResponse.json(
-        { error: "Invalid answer value" },
-        { status: 400 }
-      );
-    }
-
     // Get contestant and party info
     const contestant = await prisma.contestant.findUnique({
       where: { id: contestantId },
@@ -43,18 +37,49 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     // Check if quiz is finished
     if (contestant.party.status === "FINISHED") {
-      return NextResponse.json(
-        { error: "Quiz has ended" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Quiz has ended" }, { status: 400 });
     }
 
     // Validate question number is within range
     if (questionNumber > contestant.party.totalQuestions) {
       return NextResponse.json(
-        { error: `Question number must be between 1 and ${contestant.party.totalQuestions}` },
+        {
+          error: `Question number must be between 1 and ${contestant.party.totalQuestions}`,
+        },
         { status: 400 }
       );
+    }
+
+    // Handle answer deletion (when value is null, undefined, empty string, or NaN)
+    if (
+      value === undefined ||
+      value === null ||
+      value === "" ||
+      isNaN(Number(value))
+    ) {
+      // Delete the answer if it exists
+      await prisma.answer.deleteMany({
+        where: {
+          partyId: contestant.partyId,
+          contestantId: contestantId,
+          questionNumber: questionNumber,
+        },
+      });
+
+      // Trigger Pusher event for answer deletion
+      await pusherServer.trigger(
+        `party-${contestant.partyId}`,
+        "answer-deleted",
+        {
+          contestantId: contestantId,
+          questionNumber: questionNumber,
+        }
+      );
+
+      return NextResponse.json({
+        success: true,
+        deleted: true,
+      });
     }
 
     // Upsert answer (create or update)
@@ -76,6 +101,20 @@ export async function PUT(request: NextRequest, { params }: Params) {
         value: Number(value),
       },
     });
+
+    console.log("answer", answer);
+
+    // Trigger Pusher event for real-time updates
+    await pusherServer.trigger(
+      `party-${contestant.partyId}`,
+      "answer-submitted",
+      {
+        contestantId: contestantId,
+        questionNumber: questionNumber,
+      }
+    );
+
+    console.log("pusher event triggered");
 
     return NextResponse.json({
       success: true,

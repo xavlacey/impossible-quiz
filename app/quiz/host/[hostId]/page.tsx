@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Leaderboard from "@/components/quiz/Leaderboard";
+import { getPusherClient } from "@/lib/pusher/client";
 
 type Contestant = {
   id: string;
@@ -35,6 +36,7 @@ export default function HostDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showEndQuizModal, setShowEndQuizModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [correctAnswers, setCorrectAnswers] = useState<Record<number, string>>(
     {}
   );
@@ -51,7 +53,12 @@ export default function HostDashboard() {
     Array<{
       questionNumber: number;
       correctAnswer: number;
-      playerAnswers: Array<{ name: string; answer: number; score: number }>;
+      playerAnswers: Array<{
+        contestantId: string;
+        name: string;
+        answer: number;
+        score: number;
+      }>;
     }>
   >([]);
 
@@ -83,6 +90,83 @@ export default function HostDashboard() {
             setCorrectAnswersMap(leaderboardData.correctAnswers);
           }
         }
+
+        // Set up Pusher subscriptions after getting initial data
+        const pusher = getPusherClient();
+        const channel = pusher.subscribe(`party-${data.party.id}`);
+
+        // Listen for answer submissions to update contestant status in real-time
+        channel.bind("answer-submitted", () => {
+          // Re-fetch status to get updated answer counts
+          fetch(`/api/quiz/host/${hostId}/status`)
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.party && data.contestants) {
+                setContestants(data.contestants);
+              }
+            });
+        });
+
+        // Listen for answer deletions to update contestant status in real-time
+        channel.bind("answer-deleted", () => {
+          // Re-fetch status to get updated answer counts
+          fetch(`/api/quiz/host/${hostId}/status`)
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.party && data.contestants) {
+                setContestants(data.contestants);
+              }
+            });
+        });
+
+        // Listen for new contestants joining
+        channel.bind(
+          "contestant-joined",
+          (event: {
+            contestant: {
+              id: string;
+              name: string;
+              answeredQuestions: number[];
+              totalAnswered: number;
+            };
+            partyStatus: string;
+          }) => {
+            // Add the new contestant to the list
+            setContestants((prev) => {
+              // Check if contestant already exists to avoid duplicates
+              if (prev.some((c) => c.id === event.contestant.id)) {
+                return prev;
+              }
+              return [...prev, event.contestant];
+            });
+
+            // Update party status if it changed
+            setParty((prevParty) => {
+              if (prevParty && event.partyStatus !== prevParty.status) {
+                return { ...prevParty, status: event.partyStatus };
+              }
+              return prevParty;
+            });
+          }
+        );
+
+        // Listen for question changes (for consistency and multi-host scenarios)
+        channel.bind(
+          "question-changed",
+          (eventData: { currentQuestion: number }) => {
+            setParty((prev) => {
+              if (prev && prev.currentQuestion !== eventData.currentQuestion) {
+                return { ...prev, currentQuestion: eventData.currentQuestion };
+              }
+              return prev;
+            });
+          }
+        );
+
+        return () => {
+          channel.unbind_all();
+          channel.unsubscribe();
+        };
       } catch (err) {
         setError("Failed to load party data");
       } finally {
@@ -91,9 +175,7 @@ export default function HostDashboard() {
     };
 
     fetchStatus();
-    // Poll every 2 seconds for updates
-    const interval = setInterval(fetchStatus, 2000);
-    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hostId, leaderboard]);
 
   const handleRevealQuestion = async () => {
@@ -145,11 +227,14 @@ export default function HostDashboard() {
     if (newQuestion < 1 || newQuestion > party.totalQuestions) return;
 
     try {
-      const response = await fetch(`/api/quiz/host/${hostId}/current-question`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentQuestion: newQuestion }),
-      });
+      const response = await fetch(
+        `/api/quiz/host/${hostId}/current-question`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ currentQuestion: newQuestion }),
+        }
+      );
 
       if (response.ok) {
         setParty({ ...party, currentQuestion: newQuestion });
@@ -157,6 +242,36 @@ export default function HostDashboard() {
     } catch (err) {
       console.error("Failed to update current question:", err);
     }
+  };
+
+  const handleStartEndQuiz = async () => {
+    if (!party) return;
+
+    // Update party status to FINISHED to lock all answers
+    try {
+      await fetch(`/api/quiz/host/${hostId}/current-question`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentQuestion: party.currentQuestion,
+        }),
+      });
+
+      // Update status to FINISHED
+      const response = await fetch(`/api/quiz/host/${hostId}/status`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "FINISHED" }),
+      });
+
+      if (response.ok) {
+        setParty({ ...party, status: "FINISHED" });
+      }
+    } catch (err) {
+      console.error("Failed to lock quiz:", err);
+    }
+
+    setShowEndQuizModal(true);
   };
 
   const handleFinishQuiz = async () => {
@@ -249,18 +364,13 @@ export default function HostDashboard() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">Current Question</h2>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleChangeCurrentQuestion(party.currentQuestion - 1)}
-                  disabled={party.currentQuestion <= 1}
-                  className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  ◀
-                </button>
                 <span className="text-xl font-bold">
                   {party.currentQuestion}
                 </span>
                 <button
-                  onClick={() => handleChangeCurrentQuestion(party.currentQuestion + 1)}
+                  onClick={() =>
+                    handleChangeCurrentQuestion(party.currentQuestion + 1)
+                  }
                   disabled={party.currentQuestion >= party.totalQuestions}
                   className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -327,48 +437,79 @@ export default function HostDashboard() {
             )}
           </div>
 
-          <button
-            onClick={async () => {
-              // Update party status to FINISHED to lock all answers
-              try {
-                await fetch(`/api/quiz/host/${hostId}/current-question`, {
-                  method: "PUT",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ currentQuestion: party.currentQuestion }),
+          {party.currentQuestion === party.totalQuestions && (
+            <button
+              onClick={() => {
+                // Check if all contestants have answered all questions
+                const allQuestionsAnswered = contestants.every((contestant) => {
+                  const expectedQuestions = Array.from(
+                    { length: party.totalQuestions },
+                    (_, i) => i + 1
+                  );
+                  return (
+                    contestant.answeredQuestions.length ===
+                      party.totalQuestions &&
+                    expectedQuestions.every((q) =>
+                      contestant.answeredQuestions.includes(q)
+                    )
+                  );
                 });
 
-                // Update status to FINISHED
-                const response = await fetch(`/api/quiz/host/${hostId}/status`, {
-                  method: "PUT",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ status: "FINISHED" }),
-                });
-
-                if (response.ok) {
-                  setParty({ ...party, status: "FINISHED" });
+                if (!allQuestionsAnswered && contestants.length > 0) {
+                  // Show confirmation modal if not all questions are answered
+                  setShowConfirmModal(true);
+                } else {
+                  // Proceed directly to end quiz modal
+                  handleStartEndQuiz();
                 }
-              } catch (err) {
-                console.error("Failed to lock quiz:", err);
-              }
-
-              setShowEndQuizModal(true);
-            }}
-            className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 transition"
-          >
-            End Quiz & Enter Answers
-          </button>
+              }}
+              className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 transition"
+            >
+              End Quiz & Enter Answers
+            </button>
+          )}
         </div>
+
+        {/* Confirmation Modal for Unanswered Questions */}
+        {showConfirmModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h2 className="text-xl font-bold mb-4">Confirm End Quiz</h2>
+              <p className="text-gray-700 mb-6">
+                Not all contestants have answered all questions. Are you sure
+                you want to end the quiz?
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowConfirmModal(false);
+                    handleStartEndQuiz();
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                >
+                  Yes, end quiz
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* End Quiz Modal - Progressive Reveal */}
         {showEndQuizModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-              <div className="mb-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+            <div className="bg-white rounded-lg p-3 sm:p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+              <div className="mb-3 sm:mb-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h2 className="text-xl sm:text-2xl font-bold">
                     Question {currentRevealQuestion} of {party.totalQuestions}
                   </h2>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-xs sm:text-sm text-gray-500">
                     Progress: {questionResults.length}/{party.totalQuestions}
                   </div>
                 </div>
@@ -394,47 +535,74 @@ export default function HostDashboard() {
               {questionResults.map((result) => (
                 <div
                   key={result.questionNumber}
-                  className="mb-4 p-4 bg-gray-50 rounded-lg"
+                  className="mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-bold text-lg">
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <h3 className="font-bold text-base sm:text-lg">
                       Question {result.questionNumber}
                     </h3>
-                    <div className="text-sm">
+                    <div className="text-xs sm:text-sm">
                       Correct Answer:{" "}
                       <span className="font-bold text-green-600">
-                        {result.correctAnswer}
+                        {result.correctAnswer.toLocaleString("en-US")}
                       </span>
                     </div>
                   </div>
                   <div className="space-y-1">
-                    {result.playerAnswers.map((pa, idx) => (
-                      <div
-                        key={pa.contestantId}
-                        className="flex items-center justify-between p-2 bg-white rounded border"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-400 text-sm">
-                            #{idx + 1}
-                          </span>
-                          <span className="font-medium">{pa.name}</span>
-                          <span className="text-gray-600">→ {pa.answer}</span>
-                        </div>
+                    {result.playerAnswers.map((pa, idx) => {
+                      const distance = Math.abs(
+                        pa.answer - result.correctAnswer
+                      );
+                      const isTooHigh = pa.answer > result.correctAnswer;
+                      const isTooLow = pa.answer < result.correctAnswer;
+                      const percentDiff =
+                        result.correctAnswer !== 0
+                          ? ((distance / result.correctAnswer) * 100).toFixed(1)
+                          : pa.answer === 0
+                          ? "0"
+                          : "∞";
+                      return (
                         <div
-                          className={`font-bold ${
-                            pa.score >= 25
-                              ? "text-green-600"
-                              : pa.score >= 15
-                              ? "text-blue-600"
-                              : pa.score >= 10
-                              ? "text-yellow-600"
-                              : "text-gray-400"
-                          }`}
+                          key={pa.contestantId}
+                          className="p-2 bg-white rounded border"
                         >
-                          {pa.score > 0 ? `+${pa.score}` : pa.score} pts
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-gray-400 text-sm">
+                                #{idx + 1}
+                              </span>
+                              <span className="font-medium">{pa.name}</span>
+                              <span className="text-gray-600">
+                                → {pa.answer.toLocaleString("en-US")}
+                              </span>
+                            </div>
+                            <div
+                              className={`font-bold ${
+                                pa.score >= 25
+                                  ? "text-green-600"
+                                  : pa.score >= 15
+                                  ? "text-blue-600"
+                                  : pa.score >= 10
+                                  ? "text-yellow-600"
+                                  : "text-gray-400"
+                              }`}
+                            >
+                              {pa.score > 0 ? `+${pa.score}` : pa.score} pts
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1 ml-6">
+                            {distance === 0
+                              ? "exact"
+                              : isTooHigh
+                              ? `${distance.toLocaleString("en-US")} too high`
+                              : `${distance.toLocaleString("en-US")} too low`}
+                            {result.correctAnswer !== 0 &&
+                              distance > 0 &&
+                              ` (${percentDiff}% off)`}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -442,8 +610,8 @@ export default function HostDashboard() {
               {/* Current question input - only show if we haven't revealed it yet */}
               {currentRevealQuestion <= party.totalQuestions &&
                 questionResults.length < currentRevealQuestion && (
-                  <div className="mb-6 p-4 border-2 border-blue-500 rounded-lg bg-blue-50">
-                    <label className="block text-lg font-semibold text-gray-800 mb-2">
+                  <div className="mb-4 sm:mb-6 p-3 sm:p-4 border-2 border-blue-500 rounded-lg bg-blue-50">
+                    <label className="block text-base sm:text-lg font-semibold text-gray-800 mb-2">
                       What is the correct answer for Question{" "}
                       {currentRevealQuestion}?
                     </label>
@@ -458,7 +626,7 @@ export default function HostDashboard() {
                         }))
                       }
                       placeholder="Enter correct answer"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-base sm:text-lg"
                       autoFocus
                     />
                   </div>
@@ -511,7 +679,9 @@ export default function HostDashboard() {
                       disabled={isSubmitting}
                       className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                     >
-                      {isSubmitting ? "Calculating..." : "Show Final Leaderboard"}
+                      {isSubmitting
+                        ? "Calculating..."
+                        : "Show Final Leaderboard"}
                     </button>
                   )}
               </div>

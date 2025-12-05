@@ -12,6 +12,10 @@ type LeaderboardProps = {
   showQuestionBreakdown?: boolean;
 };
 
+function formatNumber(num: number): string {
+  return num.toLocaleString("en-US");
+}
+
 export default function Leaderboard({
   leaderboard,
   totalQuestions,
@@ -27,9 +31,7 @@ export default function Leaderboard({
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
-      <h1 className="text-3xl font-bold text-center mb-6">
-        Final Results
-      </h1>
+      <h1 className="text-3xl font-bold text-center mb-6">Final Results</h1>
 
       <div className="space-y-3 mb-6">
         {leaderboard.map((entry, index) => (
@@ -81,7 +83,7 @@ export default function Leaderboard({
               </div>
               <div className="text-right">
                 <div className="text-3xl font-bold text-blue-600">
-                  {entry.totalScore}
+                  {formatNumber(entry.totalScore)}
                 </div>
                 <div className="text-sm text-gray-500">points</div>
               </div>
@@ -99,18 +101,20 @@ export default function Leaderboard({
       {correctAnswers && (
         <div className="mt-6 pt-6 border-t">
           <h3 className="font-semibold mb-3 text-gray-700">Correct Answers:</h3>
-          <div className="grid grid-cols-5 gap-2">
-            {Array.from({ length: totalQuestions }, (_, i) => i + 1).map((q) => (
-              <div
-                key={q}
-                className="text-center p-2 bg-gray-50 rounded border border-gray-200"
-              >
-                <div className="text-xs text-gray-600">Q{q}</div>
-                <div className="font-semibold text-gray-900">
-                  {correctAnswers[q]}
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+            {Array.from({ length: totalQuestions }, (_, i) => i + 1).map(
+              (q) => (
+                <div
+                  key={q}
+                  className="text-center p-2 bg-gray-50 rounded border border-gray-200 min-w-0"
+                >
+                  <div className="text-xs text-gray-600">Q{q}</div>
+                  <div className="font-semibold text-gray-900 break-words break-all">
+                    {formatNumber(correctAnswers[q])}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
         </div>
       )}

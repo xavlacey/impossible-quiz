@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { pusherServer } from "@/lib/pusher/server";
 
 type Params = {
   params: Promise<{
@@ -30,15 +31,29 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     if (currentQuestion > party.totalQuestions) {
       return NextResponse.json(
-        { error: `Question number must be between 1 and ${party.totalQuestions}` },
+        {
+          error: `Question number must be between 1 and ${party.totalQuestions}`,
+        },
         { status: 400 }
       );
     }
 
-    await prisma.party.update({
+    const updatedParty = await prisma.party.update({
       where: { hostId },
       data: { currentQuestion },
     });
+
+    // Trigger Pusher event for real-time question navigation
+    try {
+      await pusherServer.trigger(
+        `party-${updatedParty.id}`,
+        "question-changed",
+        { currentQuestion }
+      );
+    } catch (pusherError) {
+      console.error("Error triggering Pusher event:", pusherError);
+      // Don't fail the request if Pusher fails - the DB update succeeded
+    }
 
     return NextResponse.json({
       success: true,

@@ -9,8 +9,14 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum PartyStatus {
+  LOBBY
+  ACTIVE
+  FINISHED
 }
 
 model Party {
@@ -18,10 +24,10 @@ model Party {
   code            String      @unique
   hostId          String      @unique
   createdAt       DateTime    @default(now())
-  status          String      @default("LOBBY")
+  status          PartyStatus @default(LOBBY)
   currentQuestion Int         @default(1)
   totalQuestions  Int         @default(10)
-  correctAnswers  String?
+  correctAnswers  Json?
   contestants     Contestant[]
   answers         Answer[]
 }

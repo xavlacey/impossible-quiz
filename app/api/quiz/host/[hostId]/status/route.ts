@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { pusherServer } from "@/lib/pusher/server";
 
 type Params = {
   params: Promise<{
@@ -77,10 +78,19 @@ export async function PUT(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Party not found" }, { status: 404 });
     }
 
-    await prisma.party.update({
+    const updatedParty = await prisma.party.update({
       where: { hostId },
       data: { status },
     });
+
+    // Trigger Pusher event for real-time status updates
+    await pusherServer.trigger(
+      `party-${updatedParty.id}`,
+      "quiz-status-changed",
+      {
+        status,
+      }
+    );
 
     return NextResponse.json({
       success: true,

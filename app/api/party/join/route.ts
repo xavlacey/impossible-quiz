@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { isValidPartyCode } from "@/lib/utils/codeGenerator";
+import { pusherServer } from "@/lib/pusher/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,10 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!name || name.trim().length === 0) {
-      return NextResponse.json(
-        { error: "Name is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
     if (name.length > 50) {
@@ -32,7 +30,10 @@ export async function POST(request: NextRequest) {
     const normalizedCode = code.toUpperCase();
     const trimmedName = name.trim();
 
-    console.log("[/api/party/join] Searching for party with code:", normalizedCode);
+    console.log(
+      "[/api/party/join] Searching for party with code:",
+      normalizedCode
+    );
 
     // Find party
     const party = await prisma.party.findUnique({
@@ -46,17 +47,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log("[/api/party/join] Party found:", party ? `Yes (${party.code})` : "No");
+    console.log(
+      "[/api/party/join] Party found:",
+      party ? `Yes (${party.code})` : "No"
+    );
 
     if (!party) {
       // Debug: List all parties
-      const allParties = await prisma.party.findMany({ select: { code: true } });
-      console.log("[/api/party/join] All party codes in DB:", allParties.map(p => p.code));
-
-      return NextResponse.json(
-        { error: "Party not found" },
-        { status: 404 }
+      const allParties = await prisma.party.findMany({
+        select: { code: true },
+      });
+      console.log(
+        "[/api/party/join] All party codes in DB:",
+        allParties.map((p) => p.code)
       );
+
+      return NextResponse.json({ error: "Party not found" }, { status: 404 });
     }
 
     // Check if party is finished
@@ -84,12 +90,25 @@ export async function POST(request: NextRequest) {
     });
 
     // Update party status to ACTIVE if it was in LOBBY
+    let finalPartyStatus = party.status;
     if (party.status === "LOBBY") {
-      await prisma.party.update({
+      const updatedParty = await prisma.party.update({
         where: { id: party.id },
         data: { status: "ACTIVE" },
       });
+      finalPartyStatus = updatedParty.status as typeof updatedParty.status;
     }
+
+    // Trigger Pusher event to notify host of new contestant
+    await pusherServer.trigger(`party-${party.id}`, "contestant-joined", {
+      contestant: {
+        id: contestant.id,
+        name: contestant.name,
+        answeredQuestions: [],
+        totalAnswered: 0,
+      },
+      partyStatus: finalPartyStatus as string,
+    });
 
     return NextResponse.json({
       contestantId: contestant.id,

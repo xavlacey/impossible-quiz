@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Leaderboard from "@/components/quiz/Leaderboard";
+import { getPusherClient } from "@/lib/pusher/client";
 
 type Answer = {
   questionNumber: number;
@@ -34,15 +35,24 @@ export default function PlayerView() {
   const [answers, setAnswers] = useState<Map<number, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [savingStatus, setSavingStatus] = useState<Map<number, boolean>>(new Map());
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null);
-  const [correctAnswersMap, setCorrectAnswersMap] = useState<Record<number, number> | null>(null);
+  const [savingStatus, setSavingStatus] = useState<Map<number, boolean>>(
+    new Map()
+  );
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(
+    null
+  );
+  const [correctAnswersMap, setCorrectAnswersMap] = useState<Record<
+    number,
+    number
+  > | null>(null);
 
-  // Fetch initial data and poll for status
+  // Fetch initial data and set up Pusher subscriptions
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`/api/quiz/player/${contestantId}/answers`);
+        const response = await fetch(
+          `/api/quiz/player/${contestantId}/answers`
+        );
         const data = await response.json();
 
         if (!response.ok) {
@@ -71,6 +81,60 @@ export default function PlayerView() {
             setCorrectAnswersMap(leaderboardData.correctAnswers);
           }
         }
+
+        // Set up Pusher subscriptions after getting initial data
+        const pusher = getPusherClient();
+        const channel = pusher.subscribe(`party-${data.party.id}`);
+
+        // Listen for quiz status changes
+        channel.bind("quiz-status-changed", (eventData: { status: string }) => {
+          setParty((prev) =>
+            prev ? { ...prev, status: eventData.status } : null
+          );
+
+          // Fetch leaderboard when quiz finishes
+          if (eventData.status === "FINISHED") {
+            fetch(`/api/quiz/player/${contestantId}/leaderboard`)
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.leaderboard) {
+                  setLeaderboard(data.leaderboard);
+                  setCorrectAnswersMap(data.correctAnswers);
+                }
+              });
+          }
+        });
+
+        // Listen for quiz finished event with leaderboard data
+        channel.bind(
+          "quiz-finished",
+          (eventData: {
+            leaderboard: LeaderboardEntry[];
+            correctAnswers: Record<number, number>;
+          }) => {
+            setParty((prev) => (prev ? { ...prev, status: "FINISHED" } : null));
+            setLeaderboard(eventData.leaderboard);
+            setCorrectAnswersMap(eventData.correctAnswers);
+          }
+        );
+
+        // Listen for question navigation changes
+        channel.bind(
+          "question-changed",
+          (eventData: { currentQuestion: number }) => {
+            setParty((prev) => {
+              if (prev) {
+                return { ...prev, currentQuestion: eventData.currentQuestion };
+              }
+              return null;
+            });
+          }
+        );
+
+        return () => {
+          channel.unbind_all();
+          channel.unsubscribe();
+        };
       } catch (err) {
         setError("Failed to load quiz data");
       } finally {
@@ -79,48 +143,53 @@ export default function PlayerView() {
     };
 
     fetchData();
-    // Poll every 2 seconds to check for quiz end
-    const interval = setInterval(fetchData, 2000);
-    return () => clearInterval(interval);
   }, [contestantId, leaderboard]);
 
-  const saveAnswer = useCallback(async (questionNumber: number, value: number) => {
-    setSavingStatus(prev => new Map(prev).set(questionNumber, true));
+  const saveAnswer = useCallback(
+    async (questionNumber: number, value: number | null) => {
+      setSavingStatus((prev) => new Map(prev).set(questionNumber, true));
 
-    try {
-      const response = await fetch(`/api/quiz/player/${contestantId}/answer`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questionNumber, value }),
-      });
+      try {
+        const response = await fetch(
+          `/api/quiz/player/${contestantId}/answer`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ questionNumber, value }),
+          }
+        );
 
-      if (!response.ok) {
-        console.error("Failed to save answer");
+        if (!response.ok) {
+          console.error("Failed to save answer");
+        }
+      } catch (err) {
+        console.error("Error saving answer:", err);
+      } finally {
+        setSavingStatus((prev) => {
+          const newMap = new Map(prev);
+          newMap.delete(questionNumber);
+          return newMap;
+        });
       }
-    } catch (err) {
-      console.error("Error saving answer:", err);
-    } finally {
-      setSavingStatus(prev => {
-        const newMap = new Map(prev);
-        newMap.delete(questionNumber);
-        return newMap;
-      });
-    }
-  }, [contestantId]);
+    },
+    [contestantId]
+  );
 
   const handleAnswerChange = (questionNumber: number, value: string) => {
     const numValue = parseFloat(value);
     if (!isNaN(numValue)) {
-      setAnswers(prev => new Map(prev).set(questionNumber, numValue));
+      setAnswers((prev) => new Map(prev).set(questionNumber, numValue));
       // Auto-save after 500ms of no typing
       setTimeout(() => saveAnswer(questionNumber, numValue), 500);
     } else if (value === "" || value === "-") {
       // Allow empty or just minus sign while typing
-      setAnswers(prev => {
+      setAnswers((prev) => {
         const newMap = new Map(prev);
         newMap.delete(questionNumber);
         return newMap;
       });
+      // Auto-save deletion after 500ms of no typing
+      setTimeout(() => saveAnswer(questionNumber, null), 500);
     }
   };
 
@@ -203,12 +272,12 @@ export default function PlayerView() {
                           🔒 Locked
                         </span>
                       )}
-                      {!isLocked && isSaving && (
+                      {/* {!isLocked && isSaving && (
                         <span className="text-xs text-gray-500">Saving...</span>
                       )}
                       {!isLocked && hasAnswer && !isSaving && (
                         <span className="text-green-600 text-xl">✓</span>
-                      )}
+                      )} */}
                       {isCurrent && !isLocked && (
                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
                           CURRENT
@@ -219,9 +288,15 @@ export default function PlayerView() {
                   <input
                     type="number"
                     step="any"
-                    placeholder={isLocked ? "Question not yet revealed" : "Enter your answer"}
+                    placeholder={
+                      isLocked
+                        ? "Question not yet revealed"
+                        : "Enter your answer"
+                    }
                     value={answers.get(questionNum) ?? ""}
-                    onChange={(e) => handleAnswerChange(questionNum, e.target.value)}
+                    onChange={(e) =>
+                      handleAnswerChange(questionNum, e.target.value)
+                    }
                     disabled={isDisabled}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
                   />

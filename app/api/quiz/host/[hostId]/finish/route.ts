@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { calculateFinalScores } from "@/lib/utils/scoring";
+import { pusherServer } from "@/lib/pusher/server";
 
 type Params = {
   params: Promise<{
@@ -73,6 +74,12 @@ export async function POST(request: NextRequest, { params }: Params) {
         status: "FINISHED",
         correctAnswers: JSON.stringify(correctAnswersMap),
       },
+    });
+
+    // Trigger Pusher event to notify contestants that quiz is finished with leaderboard
+    await pusherServer.trigger(`party-${party.id}`, "quiz-finished", {
+      leaderboard,
+      correctAnswers: correctAnswersMap,
     });
 
     return NextResponse.json({
