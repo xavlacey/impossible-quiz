@@ -79,15 +79,28 @@ export default function HostDashboard() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
+        console.log(`[HostDashboard] Fetching status for hostId: ${hostId}`);
         const response = await fetch(`/api/quiz/host/${hostId}/status`);
 
+        console.log(`[HostDashboard] Status response:`, {
+          ok: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+        });
+
         if (!response.ok) {
-          const errorData = await response
-            .json()
-            .catch(() => ({ error: `HTTP ${response.status}` }));
-          console.error("API error response:", {
+          const errorData = await response.json().catch((parseError) => {
+            console.error(
+              "[HostDashboard] Failed to parse error response:",
+              parseError
+            );
+            return { error: `HTTP ${response.status}` };
+          });
+          console.error("[HostDashboard] API error response:", {
             status: response.status,
+            statusText: response.statusText,
             error: errorData,
+            hostId,
           });
           setError(
             errorData.error || `Failed to load party (${response.status})`
@@ -96,6 +109,12 @@ export default function HostDashboard() {
         }
 
         const data = await response.json();
+        console.log("[HostDashboard] Successfully fetched party data:", {
+          partyId: data.party?.id,
+          code: data.party?.code,
+          status: data.party?.status,
+          contestantsCount: data.contestants?.length,
+        });
 
         setParty(data.party);
         setContestants(data.contestants);
@@ -114,8 +133,34 @@ export default function HostDashboard() {
         }
 
         // Set up Pusher subscriptions after getting initial data
-        const pusher = getPusherClient();
-        const channel = pusher.subscribe(`party-${data.party.id}`);
+        console.log(
+          "[HostDashboard] Setting up Pusher connection for party:",
+          data.party.id
+        );
+        let pusher;
+        let channel;
+        try {
+          pusher = getPusherClient();
+          console.log("[HostDashboard] Pusher client initialized successfully");
+          channel = pusher.subscribe(`party-${data.party.id}`);
+          console.log(
+            "[HostDashboard] Subscribed to Pusher channel:",
+            `party-${data.party.id}`
+          );
+        } catch (pusherError) {
+          console.error("[HostDashboard] Error setting up Pusher:", {
+            error: pusherError,
+            errorMessage:
+              pusherError instanceof Error
+                ? pusherError.message
+                : String(pusherError),
+            errorStack:
+              pusherError instanceof Error ? pusherError.stack : undefined,
+            partyId: data.party.id,
+          });
+          // Continue without Pusher - the app can still work, just without real-time updates
+          throw pusherError;
+        }
 
         // Listen for answer submissions to update contestant status in real-time
         channel.bind("answer-submitted", () => {
@@ -190,9 +235,22 @@ export default function HostDashboard() {
           channel.unsubscribe();
         };
       } catch (err) {
-        setError("Failed to load party data");
+        console.error("[HostDashboard] Error in fetchStatus:", {
+          error: err,
+          errorMessage: err instanceof Error ? err.message : String(err),
+          errorStack: err instanceof Error ? err.stack : undefined,
+          hostId,
+        });
+        setError(
+          `Failed to load party data: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        );
       } finally {
         setLoading(false);
+        console.log(
+          "[HostDashboard] fetchStatus completed, loading set to false"
+        );
       }
     };
 

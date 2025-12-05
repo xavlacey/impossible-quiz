@@ -27,17 +27,23 @@ export default function Home() {
         body: JSON.stringify({ totalQuestions }),
       });
 
-      console.log("Received response from /api/party/create:", response);
+      console.log("[Home] Received response from /api/party/create:", {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+      });
 
       const data = await response.json();
-      console.log("Parsed response data:", data);
+      console.log("[Home] Parsed response data:", data);
 
       if (!response.ok) {
-        console.error(
-          "Error creating party:",
-          data.error || "Failed to create party"
-        );
-        setError(data.error || "Failed to create party");
+        console.error("[Home] Error creating party:", {
+          status: response.status,
+          error: data.error,
+          details: data.details,
+          fullData: data,
+        });
+        setError(data.error || data.details || "Failed to create party");
         return;
       }
 
@@ -52,11 +58,22 @@ export default function Home() {
       );
       router.push(`/quiz/host/${data.hostId}`);
     } catch (err) {
-      console.error("Exception in handleCreateParty:", err);
-      setError("Failed to create party. Please try again.");
+      console.error("[Home] Exception in handleCreateParty:", {
+        error: err,
+        errorMessage: err instanceof Error ? err.message : String(err),
+        errorStack: err instanceof Error ? err.stack : undefined,
+        errorName: err instanceof Error ? err.name : undefined,
+      });
+      setError(
+        `Failed to create party: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
     } finally {
       setIsCreating(false);
-      console.log("Finished handleCreateParty, isCreating set to false.");
+      console.log(
+        "[Home] Finished handleCreateParty, isCreating set to false."
+      );
     }
   };
 

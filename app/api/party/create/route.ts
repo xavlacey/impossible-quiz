@@ -87,9 +87,17 @@ export async function POST(request: NextRequest) {
       totalQuestions: party.totalQuestions,
     });
   } catch (error) {
-    console.error("Error creating party:", error);
+    console.error("[/api/party/create] Error creating party:", {
+      error,
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : undefined,
+      errorName: error instanceof Error ? error.name : undefined,
+    });
     return NextResponse.json(
-      { error: "Failed to create party" },
+      {
+        error: "Failed to create party",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

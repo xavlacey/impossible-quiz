@@ -9,8 +9,11 @@ type Params = {
 };
 
 export async function GET(request: NextRequest, { params }: Params) {
+  let hostId: string = "unknown";
   try {
-    const { hostId } = await params;
+    const resolvedParams = await params;
+    hostId = resolvedParams.hostId;
+    console.log(`[/api/quiz/host/${hostId}/status] GET request received`);
 
     const party = await prisma.party.findUnique({
       where: { hostId },
@@ -24,8 +27,18 @@ export async function GET(request: NextRequest, { params }: Params) {
     });
 
     if (!party) {
+      console.error(
+        `[/api/quiz/host/${hostId}/status] Party not found for hostId: ${hostId}`
+      );
       return NextResponse.json({ error: "Party not found" }, { status: 404 });
     }
+
+    console.log(`[/api/quiz/host/${hostId}/status] Party found:`, {
+      partyId: party.id,
+      code: party.code,
+      status: party.status,
+      contestantsCount: party.contestants.length,
+    });
 
     // Build answer status for each contestant
     const contestants = party.contestants.map((contestant) => {
@@ -38,7 +51,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       };
     });
 
-    return NextResponse.json({
+    const responseData = {
       party: {
         id: party.id,
         code: party.code,
@@ -47,9 +60,20 @@ export async function GET(request: NextRequest, { params }: Params) {
         totalQuestions: party.totalQuestions,
       },
       contestants,
-    });
+    };
+
+    console.log(`[/api/quiz/host/${hostId}/status] Returning success response`);
+    return NextResponse.json(responseData);
   } catch (error) {
-    console.error("Error fetching host status:", error);
+    console.error(
+      `[/api/quiz/host/${hostId}/status] Error fetching host status:`,
+      {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        hostId,
+      }
+    );
     return NextResponse.json(
       { error: "Failed to fetch party status" },
       { status: 500 }
@@ -64,10 +88,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const { status } = body;
 
     if (!status || !["LOBBY", "ACTIVE", "FINISHED"].includes(status)) {
-      return NextResponse.json(
-        { error: "Invalid status" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
     }
 
     const party = await prisma.party.findUnique({
