@@ -10,7 +10,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DB_URL")
 }
 
 enum PartyStatus {
@@ -20,13 +20,13 @@ enum PartyStatus {
 }
 
 model Party {
-  id              String      @id @default(cuid())
-  code            String      @unique
-  hostId          String      @unique
-  createdAt       DateTime    @default(now())
-  status          PartyStatus @default(LOBBY)
-  currentQuestion Int         @default(1)
-  totalQuestions  Int         @default(10)
+  id              String       @id @default(cuid())
+  code            String       @unique
+  hostId          String       @unique
+  createdAt       DateTime     @default(now())
+  status          PartyStatus  @default(LOBBY)
+  currentQuestion Int          @default(1)
+  totalQuestions  Int          @default(10)
   correctAnswers  Json?
   contestants     Contestant[]
   answers         Answer[]
@@ -56,4 +56,3 @@ model Answer {
 
   @@unique([partyId, contestantId, questionNumber])
 }
-
