@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 import { isValidPartyCode } from "@/lib/utils/codeGenerator";
 import { pusherServer } from "@/lib/pusher/server";
+import { PartyStatus } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -90,13 +91,13 @@ export async function POST(request: NextRequest) {
     });
 
     // Update party status to ACTIVE if it was in LOBBY
-    let finalPartyStatus = party.status;
+    let finalPartyStatus: PartyStatus = party.status;
     if (party.status === "LOBBY") {
       const updatedParty = await prisma.party.update({
         where: { id: party.id },
         data: { status: "ACTIVE" },
       });
-      finalPartyStatus = updatedParty.status as typeof updatedParty.status;
+      finalPartyStatus = updatedParty.status;
     }
 
     // Trigger Pusher event to notify host of new contestant
