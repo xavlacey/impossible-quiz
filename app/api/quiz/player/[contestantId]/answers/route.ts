@@ -7,7 +7,7 @@ type Params = {
   }>;
 };
 
-export async function GET(request: NextRequest, { params }: Params) {
+export async function GET(_request: NextRequest, { params }: Params) {
   try {
     const { contestantId } = await params;
 

@@ -44,11 +44,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (!party) {
-      // Debug: List all parties
-      const allParties = await prisma.party.findMany({
-        select: { code: true },
-      });
-
       return NextResponse.json({ error: "Party not found" }, { status: 404 });
     }
 

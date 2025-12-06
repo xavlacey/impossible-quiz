@@ -8,7 +8,7 @@ type Params = {
   }>;
 };
 
-export async function GET(request: NextRequest, { params }: Params) {
+export async function GET(_request: NextRequest, { params }: Params) {
   let hostId: string = "unknown";
   try {
     const resolvedParams = await params;

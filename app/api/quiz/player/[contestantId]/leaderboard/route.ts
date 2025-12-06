@@ -8,7 +8,7 @@ type Params = {
   }>;
 };
 
-export async function GET(request: NextRequest, { params }: Params) {
+export async function GET(_request: NextRequest, { params }: Params) {
   try {
     const { contestantId } = await params;
 
@@ -49,7 +49,9 @@ export async function GET(request: NextRequest, { params }: Params) {
       );
     }
 
-    const correctAnswersMap = JSON.parse(contestant.party.correctAnswers as string);
+    const correctAnswersMap = JSON.parse(
+      contestant.party.correctAnswers as string
+    );
 
     const answersForScoring = contestant.party.answers.map((a) => ({
       questionNumber: a.questionNumber,
