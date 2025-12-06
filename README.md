@@ -45,8 +45,8 @@ cp .env.example .env
 
 Update the following in `.env`:
 
-- `DB_URL`: Your PostgreSQL connection string
-- `PUSHER_APP_ID`, `PUSHER_SECRET`, `PUSHER_KEY`, `PUSHER_CLUSTER`: Get these from [Pusher Dashboard](https://dashboard.pusher.com)
+- `DB_DATABASE_URL`: Your PostgreSQL connection string
+- `PUSHER_APP_ID`, `PUSHER_SECRET`, `NEXT_PUBLIC_PUSHER_KEY`, `NEXT_PUBLIC_PUSHER_CLUSTER`: Get these from [Pusher Dashboard](https://dashboard.pusher.com)
 
 3. **Set up the database:**
 
@@ -141,16 +141,6 @@ bun lint
 ```bash
 bun build
 ```
-
-## Next Steps (Phase 2+)
-
-- [ ] Implement party creation API
-- [ ] Implement contestant join flow
-- [ ] Add real-time answer submission
-- [ ] Build answer status grid for quizmaster
-- [ ] Implement scoring algorithm
-- [ ] Add end quiz functionality
-- [ ] Create leaderboard display
 
 ## License
 
