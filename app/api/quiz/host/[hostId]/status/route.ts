@@ -13,7 +13,6 @@ export async function GET(request: NextRequest, { params }: Params) {
   try {
     const resolvedParams = await params;
     hostId = resolvedParams.hostId;
-    console.log(`[/api/quiz/host/${hostId}/status] GET request received`);
 
     const party = await prisma.party.findUnique({
       where: { hostId },
@@ -27,18 +26,8 @@ export async function GET(request: NextRequest, { params }: Params) {
     });
 
     if (!party) {
-      console.error(
-        `[/api/quiz/host/${hostId}/status] Party not found for hostId: ${hostId}`
-      );
       return NextResponse.json({ error: "Party not found" }, { status: 404 });
     }
-
-    console.log(`[/api/quiz/host/${hostId}/status] Party found:`, {
-      partyId: party.id,
-      code: party.code,
-      status: party.status,
-      contestantsCount: party.contestants.length,
-    });
 
     // Build answer status for each contestant
     const contestants = party.contestants.map((contestant) => {
@@ -62,7 +51,6 @@ export async function GET(request: NextRequest, { params }: Params) {
       contestants,
     };
 
-    console.log(`[/api/quiz/host/${hostId}/status] Returning success response`);
     return NextResponse.json(responseData);
   } catch (error) {
     console.error(

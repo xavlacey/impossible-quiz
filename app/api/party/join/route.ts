@@ -31,11 +31,6 @@ export async function POST(request: NextRequest) {
     const normalizedCode = code.toUpperCase();
     const trimmedName = name.trim();
 
-    console.log(
-      "[/api/party/join] Searching for party with code:",
-      normalizedCode
-    );
-
     // Find party
     const party = await prisma.party.findUnique({
       where: { code: normalizedCode },
@@ -48,20 +43,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(
-      "[/api/party/join] Party found:",
-      party ? `Yes (${party.code})` : "No"
-    );
-
     if (!party) {
       // Debug: List all parties
       const allParties = await prisma.party.findMany({
         select: { code: true },
       });
-      console.log(
-        "[/api/party/join] All party codes in DB:",
-        allParties.map((p) => p.code)
-      );
 
       return NextResponse.json({ error: "Party not found" }, { status: 404 });
     }
@@ -120,6 +106,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error joining party:", error);
+
     return NextResponse.json(
       { error: "Failed to join party" },
       { status: 500 }

@@ -18,8 +18,6 @@ export default function Home() {
     setError("");
     setIsCreating(true);
 
-    console.log("Creating party with totalQuestions:", totalQuestions);
-
     try {
       const response = await fetch("/api/party/create", {
         method: "POST",
@@ -27,14 +25,7 @@ export default function Home() {
         body: JSON.stringify({ totalQuestions }),
       });
 
-      console.log("[Home] Received response from /api/party/create:", {
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText,
-      });
-
       const data = await response.json();
-      console.log("[Home] Parsed response data:", data);
 
       if (!response.ok) {
         console.error("[Home] Error creating party:", {
@@ -49,13 +40,8 @@ export default function Home() {
 
       // Store hostId in sessionStorage
       sessionStorage.setItem("hostId", data.hostId);
-      console.log("Stored hostId in sessionStorage:", data.hostId);
 
       // Redirect to host dashboard
-      console.log(
-        "Redirecting to host dashboard at:",
-        `/quiz/host/${data.hostId}`
-      );
       router.push(`/quiz/host/${data.hostId}`);
     } catch (err) {
       console.error("[Home] Exception in handleCreateParty:", {
@@ -71,9 +57,6 @@ export default function Home() {
       );
     } finally {
       setIsCreating(false);
-      console.log(
-        "[Home] Finished handleCreateParty, isCreating set to false."
-      );
     }
   };
 

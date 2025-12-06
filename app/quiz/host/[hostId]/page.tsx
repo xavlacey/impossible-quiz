@@ -74,19 +74,10 @@ export default function HostDashboard() {
     }>
   >([]);
 
-  console.log("questionResults", questionResults);
-
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        console.log(`[HostDashboard] Fetching status for hostId: ${hostId}`);
         const response = await fetch(`/api/quiz/host/${hostId}/status`);
-
-        console.log(`[HostDashboard] Status response:`, {
-          ok: response.ok,
-          status: response.status,
-          statusText: response.statusText,
-        });
 
         if (!response.ok) {
           const errorData = await response.json().catch((parseError) => {
@@ -109,12 +100,6 @@ export default function HostDashboard() {
         }
 
         const data = await response.json();
-        console.log("[HostDashboard] Successfully fetched party data:", {
-          partyId: data.party?.id,
-          code: data.party?.code,
-          status: data.party?.status,
-          contestantsCount: data.contestants?.length,
-        });
 
         setParty(data.party);
         setContestants(data.contestants);
@@ -133,20 +118,11 @@ export default function HostDashboard() {
         }
 
         // Set up Pusher subscriptions after getting initial data
-        console.log(
-          "[HostDashboard] Setting up Pusher connection for party:",
-          data.party.id
-        );
         let pusher;
         let channel;
         try {
           pusher = getPusherClient();
-          console.log("[HostDashboard] Pusher client initialized successfully");
           channel = pusher.subscribe(`party-${data.party.id}`);
-          console.log(
-            "[HostDashboard] Subscribed to Pusher channel:",
-            `party-${data.party.id}`
-          );
         } catch (pusherError) {
           console.error("[HostDashboard] Error setting up Pusher:", {
             error: pusherError,
@@ -248,9 +224,6 @@ export default function HostDashboard() {
         );
       } finally {
         setLoading(false);
-        console.log(
-          "[HostDashboard] fetchStatus completed, loading set to false"
-        );
       }
     };
 

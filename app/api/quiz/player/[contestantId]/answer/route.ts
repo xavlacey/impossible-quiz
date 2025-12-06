@@ -102,8 +102,6 @@ export async function PUT(request: NextRequest, { params }: Params) {
       },
     });
 
-    console.log("answer", answer);
-
     // Trigger Pusher event for real-time updates
     await pusherServer.trigger(
       `party-${contestant.partyId}`,
@@ -113,8 +111,6 @@ export async function PUT(request: NextRequest, { params }: Params) {
         questionNumber: questionNumber,
       }
     );
-
-    console.log("pusher event triggered");
 
     return NextResponse.json({
       success: true,
