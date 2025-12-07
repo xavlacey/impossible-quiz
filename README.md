@@ -4,7 +4,7 @@ A mobile-first web app for hosting in-person quizzes with numerical answers and 
 
 ## Demo
 
-Left-hand screen is the host and the other two screens are contestants. In real-life the host asks questions that have numerical answers and the contestants type their answers.
+The left-hand screen is the host and the other two screens are contestants. In real life the host asks questions that have numerical answers and the contestants type their answers.
 
 https://github.com/user-attachments/assets/6feb7224-80f9-4420-8bf6-17feefe19546
 
