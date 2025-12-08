@@ -409,10 +409,10 @@ export default function HostDashboard() {
     <main className="min-h-screen p-4 bg-gray-50">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h1 className="text-2xl font-bold mb-4">Quiz Master Dashboard</h1>
+          <h1 className="text-2xl font-bold mb-4">Quizmaster Dashboard</h1>
 
           <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Party Code:</p>
+            <p className="text-sm text-gray-600 mb-1">Party code:</p>
             <p className="text-4xl font-bold text-blue-600 tracking-wider">
               {party.code}
             </p>
@@ -420,7 +420,7 @@ export default function HostDashboard() {
 
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Current Question</h2>
+              <h2 className="text-lg font-semibold">Current question</h2>
               <div className="flex items-center gap-2">
                 <span className="text-xl font-bold">
                   {party.currentQuestion}
@@ -440,7 +440,7 @@ export default function HostDashboard() {
 
           <div className="mb-6">
             <h2 className="text-lg font-semibold mb-4">
-              Answer Status ({contestants.length} contestants)
+              Answer status ({contestants.length} contestants)
             </h2>
 
             {contestants.length === 0 ? (

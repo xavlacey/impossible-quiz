@@ -11,7 +11,7 @@ export default function Home() {
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState("");
-  const [totalQuestions, setTotalQuestions] = useState(10);
+  const [totalQuestions, setTotalQuestions] = useState<number | "">(10);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const handleCreateParty = async () => {
@@ -178,15 +178,17 @@ export default function Home() {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-            <h2 className="text-xl font-bold mb-4">Create Quiz</h2>
+            <h2 className="text-xl font-bold mb-4">Create quiz</h2>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Number of Questions
+                Number of questions
               </label>
               <input
                 type="number"
                 value={totalQuestions}
-                onChange={(e) => setTotalQuestions(Number(e.target.value))}
+                onChange={(e) =>
+                  setTotalQuestions(Number(e.target.value) || "")
+                }
                 min="1"
                 max="50"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"

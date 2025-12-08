@@ -232,6 +232,7 @@ export default function PlayerView() {
             totalQuestions={party.totalQuestions}
             correctAnswers={correctAnswersMap}
             showQuestionBreakdown={false}
+            currentContestantId={contestantId}
           />
         </div>
       </main>
