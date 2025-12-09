@@ -409,153 +409,32 @@ export default function HostDashboard() {
     <main className="min-h-screen p-4 bg-gray-50">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-6">
-          <h1 className="text-2xl font-bold mb-4">Quizmaster Dashboard</h1>
+          <h1 className="text-2xl font-bold mb-4">Quizmaster dashboard</h1>
 
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Party code:</p>
-            <p className="text-4xl font-bold text-blue-600 tracking-wider">
-              {party.code}
-            </p>
-          </div>
+          <PartyCode party={party} />
 
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">Current question</h2>
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-bold">
-                  {party.currentQuestion}
-                </span>
-                <button
-                  onClick={() =>
-                    handleChangeCurrentQuestion(party.currentQuestion + 1)
-                  }
-                  disabled={party.currentQuestion >= party.totalQuestions}
-                  className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  ▶
-                </button>
-              </div>
-            </div>
-          </div>
+          <QuestionProgress
+            party={party}
+            handleChangeCurrentQuestion={handleChangeCurrentQuestion}
+          />
 
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold mb-4">
-              Answer status ({contestants.length} contestants)
-            </h2>
-
-            {contestants.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No contestants yet. Share code{" "}
-                <span className="font-bold text-blue-600">{party.code}</span> to
-                get started!
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 px-2">Name</th>
-                      {Array.from(
-                        { length: party.totalQuestions },
-                        (_, i) => i + 1
-                      ).map((q) => (
-                        <th key={q} className="text-center py-2 px-1 w-8">
-                          {q}
-                        </th>
-                      ))}
-                      <th className="text-center py-2 px-2">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {contestants.map((contestant) => (
-                      <tr key={contestant.id} className="border-b">
-                        <td className="py-2 px-2 font-medium">
-                          {contestant.name}
-                        </td>
-                        {Array.from(
-                          { length: party.totalQuestions },
-                          (_, i) => i + 1
-                        ).map((q) => (
-                          <td key={q} className="text-center py-2 px-1">
-                            {contestant.answeredQuestions.includes(q) ? (
-                              <span className="text-green-600">✓</span>
-                            ) : (
-                              <span className="text-gray-300">-</span>
-                            )}
-                          </td>
-                        ))}
-                        <td className="text-center py-2 px-2 font-semibold">
-                          {contestant.totalAnswered}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          <AnswersTable party={party} contestants={contestants} />
 
           {party.currentQuestion === party.totalQuestions && (
-            <button
-              onClick={() => {
-                // Check if all contestants have answered all questions
-                const allQuestionsAnswered = contestants.every((contestant) => {
-                  const expectedQuestions = Array.from(
-                    { length: party.totalQuestions },
-                    (_, i) => i + 1
-                  );
-                  return (
-                    contestant.answeredQuestions.length ===
-                      party.totalQuestions &&
-                    expectedQuestions.every((q) =>
-                      contestant.answeredQuestions.includes(q)
-                    )
-                  );
-                });
-
-                if (!allQuestionsAnswered && contestants.length > 0) {
-                  // Show confirmation modal if not all questions are answered
-                  setShowConfirmModal(true);
-                } else {
-                  // Proceed directly to end quiz modal
-                  handleStartEndQuiz();
-                }
-              }}
-              className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 transition"
-            >
-              End Quiz & Enter Answers
-            </button>
+            <EndQuizButton
+              setShowConfirmModal={setShowConfirmModal}
+              handleStartEndQuiz={handleStartEndQuiz}
+              contestants={contestants}
+              party={party}
+            />
           )}
         </div>
 
-        {/* Confirmation Modal for Unanswered Questions */}
         {showConfirmModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h2 className="text-xl font-bold mb-4">Confirm End Quiz</h2>
-              <p className="text-gray-700 mb-6">
-                Not all contestants have answered all questions. Are you sure
-                you want to end the quiz?
-              </p>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setShowConfirmModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    setShowConfirmModal(false);
-                    handleStartEndQuiz();
-                  }}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  Yes, end quiz
-                </button>
-              </div>
-            </div>
-          </div>
+          <ConfirmEndQuizModal
+            setShowConfirmModal={setShowConfirmModal}
+            handleStartEndQuiz={handleStartEndQuiz}
+          />
         )}
 
         {/* End Quiz Modal - Progressive Reveal */}
@@ -751,5 +630,190 @@ export default function HostDashboard() {
         )}
       </div>
     </main>
+  );
+}
+
+function PartyCode({ party }: { party: PartyData }) {
+  return (
+    <div className="mb-6 p-4 bg-blue-50 rounded-lg flex justify-around items-center">
+      <p className="text-sm text-gray-600">Party code:</p>
+      <p className="text-2xl font-bold text-blue-600 tracking-wider">
+        {party.code}
+      </p>
+    </div>
+  );
+}
+
+function QuestionProgress({
+  party,
+  handleChangeCurrentQuestion,
+}: {
+  party: PartyData;
+  handleChangeCurrentQuestion: (newQuestion: number) => void;
+}) {
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold">
+          Current question: {party.currentQuestion}
+        </h2>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() =>
+              handleChangeCurrentQuestion(party.currentQuestion + 1)
+            }
+            disabled={party.currentQuestion >= party.totalQuestions}
+            className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className="text-lg font-medium">Next</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EndQuizButton({
+  setShowConfirmModal,
+  handleStartEndQuiz,
+  contestants,
+  party,
+}: {
+  setShowConfirmModal: (showConfirmModal: boolean) => void;
+  handleStartEndQuiz: () => void;
+  contestants: Contestant[];
+  party: PartyData;
+}) {
+  return (
+    <button
+      onClick={() => {
+        // Check if all contestants have answered all questions
+        const allQuestionsAnswered = contestants.every((contestant) => {
+          const expectedQuestions = Array.from(
+            { length: party.totalQuestions },
+            (_, i) => i + 1
+          );
+          return (
+            contestant.answeredQuestions.length === party.totalQuestions &&
+            expectedQuestions.every((q) =>
+              contestant.answeredQuestions.includes(q)
+            )
+          );
+        });
+
+        if (!allQuestionsAnswered && contestants.length > 0) {
+          // Show confirmation modal if not all questions are answered
+          setShowConfirmModal(true);
+        } else {
+          // Proceed directly to end quiz modal
+          handleStartEndQuiz();
+        }
+      }}
+      className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 transition"
+    >
+      End Quiz & Enter Answers
+    </button>
+  );
+}
+
+function ConfirmEndQuizModal({
+  setShowConfirmModal,
+  handleStartEndQuiz,
+}: {
+  setShowConfirmModal: (showConfirmModal: boolean) => void;
+  handleStartEndQuiz: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <h2 className="text-xl font-bold mb-4">Confirm End Quiz</h2>
+        <p className="text-gray-700 mb-6">
+          Not all contestants have answered all questions. Are you sure you want
+          to end the quiz?
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={() => setShowConfirmModal(false)}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              setShowConfirmModal(false);
+              handleStartEndQuiz();
+            }}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Yes, end quiz
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AnswersTable({
+  party,
+  contestants,
+}: {
+  party: PartyData;
+  contestants: Contestant[];
+}) {
+  return (
+    <div className="mb-6">
+      <h2 className="text-lg font-semibold mb-4">
+        Answer status ({contestants.length} contestants)
+      </h2>
+
+      {contestants.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          No contestants yet. Share code{" "}
+          <span className="font-bold text-blue-600">{party.code}</span> to get
+          started!
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left py-2 px-2">Name</th>
+                {Array.from(
+                  { length: party.totalQuestions },
+                  (_, i) => i + 1
+                ).map((q) => (
+                  <th key={q} className="text-center py-2 px-1 w-8">
+                    {q}
+                  </th>
+                ))}
+                <th className="text-center py-2 px-2">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {contestants.map((contestant) => (
+                <tr key={contestant.id} className="border-b">
+                  <td className="py-2 px-2 font-medium">{contestant.name}</td>
+                  {Array.from(
+                    { length: party.totalQuestions },
+                    (_, i) => i + 1
+                  ).map((q) => (
+                    <td key={q} className="text-center py-2 px-1">
+                      {contestant.answeredQuestions.includes(q) ? (
+                        <span className="text-green-600">✓</span>
+                      ) : (
+                        <span className="text-gray-300">-</span>
+                      )}
+                    </td>
+                  ))}
+                  <td className="text-center py-2 px-2 font-semibold">
+                    {contestant.totalAnswered}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }

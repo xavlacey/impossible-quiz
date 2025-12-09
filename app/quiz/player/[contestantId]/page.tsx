@@ -244,82 +244,112 @@ export default function PlayerView() {
   return (
     <main className="min-h-screen p-4 bg-gray-50">
       <div className="max-w-md mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-6 mb-4">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <p className="text-sm text-gray-600">Quiz:</p>
-              <p className="text-lg font-bold">{party.code}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-600">Progress:</p>
-              <p className="text-lg font-bold">
-                {answeredCount}/{party.totalQuestions}
-              </p>
-            </div>
-          </div>
-          <div className="text-sm text-gray-600">
-            Playing as: <span className="font-semibold">{name}</span>
-          </div>
-        </div>
+        <Header name={name} party={party} answeredCount={answeredCount} />
 
         <div className="space-y-4">
-          {Array.from({ length: party.totalQuestions }, (_, i) => i + 1).map(
-            (questionNum) => {
-              const hasAnswer = answers.has(questionNum);
-              const isSaving = savingStatus.get(questionNum);
-              const isCurrent = questionNum === party.currentQuestion;
-              const isLocked = questionNum > party.currentQuestion;
-              const isDisabled = party.status === "FINISHED" || isLocked;
-
-              return (
-                <div
-                  key={questionNum}
-                  className={`bg-white rounded-lg shadow p-4 ${
-                    isCurrent ? "ring-2 ring-blue-500" : ""
-                  } ${isLocked ? "opacity-60" : ""}`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold">Question {questionNum}</h3>
-                    <div className="flex items-center gap-2">
-                      {isLocked && (
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                          🔒 Locked
-                        </span>
-                      )}
-                      {/* {!isLocked && isSaving && (
-                        <span className="text-xs text-gray-500">Saving...</span>
-                      )}
-                      {!isLocked && hasAnswer && !isSaving && (
-                        <span className="text-green-600 text-xl">✓</span>
-                      )} */}
-                      {isCurrent && !isLocked && (
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          CURRENT
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder={
-                      isLocked
-                        ? "Question not yet revealed"
-                        : "Enter your answer"
-                    }
-                    value={formatInputValue(answers.get(questionNum))}
-                    onChange={(e) =>
-                      handleAnswerChange(questionNum, e.target.value)
-                    }
-                    disabled={isDisabled}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  />
-                </div>
-              );
-            }
-          )}
+          <AnswersList
+            answers={answers}
+            party={party}
+            savingStatus={savingStatus}
+            formatInputValue={formatInputValue}
+            handleAnswerChange={handleAnswerChange}
+          />
         </div>
       </div>
     </main>
+  );
+}
+
+function AnswersList({
+  answers,
+  party,
+  savingStatus,
+  formatInputValue,
+  handleAnswerChange,
+}: {
+  answers: Map<number, number>;
+  party: PartyData;
+  savingStatus: Map<number, boolean>;
+  formatInputValue: (value: number | undefined) => string;
+  handleAnswerChange: (questionNumber: number, value: string) => void;
+}) {
+  return (
+    <>
+      {Array.from({ length: party.totalQuestions }, (_, i) => i + 1).map(
+        (questionNum) => {
+          const isCurrent = questionNum === party.currentQuestion;
+          const isLocked = questionNum > party.currentQuestion;
+          const isDisabled = party.status === "FINISHED" || isLocked;
+
+          return (
+            <div
+              key={questionNum}
+              className={`bg-white rounded-lg shadow p-4 ${
+                isCurrent ? "ring-2 ring-blue-500" : ""
+              } ${isLocked ? "opacity-60" : ""}`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold">Question {questionNum}</h3>
+                <div className="flex items-center gap-2">
+                  {isLocked && (
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                      🔒 Locked
+                    </span>
+                  )}
+                  {isCurrent && !isLocked && (
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      CURRENT
+                    </span>
+                  )}
+                </div>
+              </div>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder={
+                  isLocked ? "Question not yet revealed" : "Enter your answer"
+                }
+                value={formatInputValue(answers.get(questionNum))}
+                onChange={(e) =>
+                  handleAnswerChange(questionNum, e.target.value)
+                }
+                disabled={isDisabled}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
+              />
+            </div>
+          );
+        }
+      )}
+    </>
+  );
+}
+
+function Header({
+  name,
+  party,
+  answeredCount,
+}: {
+  name: string;
+  party: PartyData;
+  answeredCount: number;
+}) {
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-6 mb-4">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <p className="text-sm text-gray-600">Quiz:</p>
+          <p className="text-lg font-bold">{party.code}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-sm text-gray-600">Progress:</p>
+          <p className="text-lg font-bold">
+            {answeredCount}/{party.totalQuestions}
+          </p>
+        </div>
+      </div>
+      <div className="text-sm text-gray-600">
+        Playing as: <span className="font-semibold">{name}</span>
+      </div>
+    </div>
   );
 }
