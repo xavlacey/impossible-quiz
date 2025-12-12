@@ -10,7 +10,6 @@
     "postinstall": "prisma generate",
     "vercel-build": "prisma generate && next build"
   },
-  "packageManager": "bun@latest",
   "dependencies": {
     "@prisma/client": "5",
     "next": "^15.0.0",

@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Impossible Quiz",
-  description: "Mobile-first quiz app for in-person quizzes",
+  description: "Mobile-first quiz app for numerical in-person quizzes",
 };
 
 export default function RootLayout({
@@ -13,9 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gray-50 min-h-screen">
-        {children}
-      </body>
+      <body className="bg-gray-50 min-h-screen">{children}</body>
     </html>
   );
 }

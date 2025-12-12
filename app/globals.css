@@ -1,3 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=Special Elite&display=swap");
+
+/* todo: upgrade tailwind to v4 */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
