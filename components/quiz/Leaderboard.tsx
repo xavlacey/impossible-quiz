@@ -198,7 +198,7 @@ function CorrectAnswers({
         {Array.from({ length: totalQuestions }, (_, i) => i + 1).map((q) => (
           <div
             key={q}
-            className="flex items-center justify-between p-3 bg-gray-50 rounded border border-gray-200 w-full"
+            className="flex items-center justify-between p-3 bg-gray-50 rounded-sm border border-gray-200 w-full"
           >
             <div className="text-sm font-medium text-gray-700">Q{q}</div>
             <div className="font-semibold text-gray-900">

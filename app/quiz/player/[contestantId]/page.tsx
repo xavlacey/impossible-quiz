@@ -292,12 +292,12 @@ function AnswersList({
                 <h3 className="font-semibold">Question {questionNum}</h3>
                 <div className="flex items-center gap-2">
                   {isLocked && (
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-sm">
                       🔒 Locked
                     </span>
                   )}
                   {isCurrent && !isLocked && (
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-sm">
                       CURRENT
                     </span>
                   )}
@@ -314,7 +314,7 @@ function AnswersList({
                   handleAnswerChange(questionNum, e.target.value)
                 }
                 disabled={isDisabled}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500 text-lg disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
             </div>
           );
