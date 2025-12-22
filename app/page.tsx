@@ -109,7 +109,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center p-4 bg-orange-100">
+    <main className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <h1 className="text-3xl font-bold text-center mb-8 font-typewriter tracking-widest">
           THE IMPOSSIBLE QUIZ
@@ -165,7 +165,7 @@ function HostQuizButton({
     <button
       onClick={() => setShowCreateModal(true)}
       disabled={isCreating}
-      className="w-full bg-cyan-800 text-white py-4 px-6 rounded-lg text-lg font-semibold hover:bg-cyan-700 transition disabled:opacity-50 font-typewriter tracking-widest"
+      className="w-full bg-cyan-800 text-white py-4 px-6 rounded-lg text-lg font-semibold hover:bg-cyan-700 hover:cursor-pointer transition disabled:opacity-50 font-typewriter tracking-widest"
     >
       {isCreating ? "CREATING..." : "HOST QUIZ"}
     </button>
@@ -179,9 +179,7 @@ function Divider() {
         <div className="w-full border-t border-gray-300"></div>
       </div>
       <div className="relative flex justify-center text-sm">
-        <span className="px-2 bg-orange-100 text-gray-500 font-typewriter tracking-widest">
-          or
-        </span>
+        <span className="px-2 bg-orange-100 text-gray-500">or</span>
       </div>
     </div>
   );
@@ -214,7 +212,7 @@ function CodeEntry({
         placeholder="Enter party code"
         value={joinCode}
         onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 6))}
-        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+        className="w-full px-4 py-3 border text-lg border-gray-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500"
         maxLength={6}
       />
 
@@ -233,7 +231,7 @@ function CodeEntry({
       <button
         type="submit"
         disabled={isJoining}
-        className="w-full bg-green-800 text-white py-4 px-6 rounded-lg text-lg font-semibold hover:bg-green-700 transition disabled:opacity-50"
+        className="w-full bg-green-800 text-white py-4 px-6 rounded-lg text-lg font-semibold hover:bg-green-700 hover:cursor-pointer transition disabled:opacity-50"
       >
         {isJoining ? "JOINING..." : showNameInput ? "JOIN" : "CONTINUE"}
       </button>

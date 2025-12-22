@@ -263,7 +263,7 @@ export default function PlayerView() {
   const answeredCount = answers.size;
 
   return (
-    <main className="min-h-screen p-4 bg-gray-50">
+    <main className="min-h-screen p-4">
       <div className="max-w-md mx-auto">
         <Header name={name} party={party} answeredCount={answeredCount} />
 
@@ -305,15 +305,15 @@ function AnswersList({
           return (
             <div
               key={questionNum}
-              className={`bg-white rounded-lg shadow p-4 ${
-                isCurrent ? "ring-2 ring-blue-500" : ""
+              className={`rounded-lg shadow p-4 ${
+                isCurrent ? "ring-2 ring-violet-500" : ""
               } ${isLocked ? "opacity-60" : ""}`}
             >
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold">Question {questionNum}</h3>
                 <div className="flex items-center gap-2">
                   {isLocked && (
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-sm">
+                    <span className="text-xs text-gray-600 px-2 py-1 rounded-sm">
                       🔒 Locked
                     </span>
                   )}
@@ -355,7 +355,7 @@ function Header({
   answeredCount: number;
 }) {
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 mb-4">
+    <div className="rounded-lg shadow-lg p-6 mb-4">
       <div className="flex justify-between items-center mb-4">
         <div>
           <p className="text-sm text-gray-600">Quiz:</p>

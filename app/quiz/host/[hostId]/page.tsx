@@ -392,7 +392,7 @@ export default function HostDashboard() {
   // Show leaderboard if quiz is finished
   if (party.status === "FINISHED" && leaderboard && correctAnswersMap) {
     return (
-      <main className="min-h-screen p-4 bg-gray-50">
+      <main className="min-h-screen p-4 ">
         <div className="max-w-4xl mx-auto">
           <Leaderboard
             leaderboard={leaderboard}
@@ -406,20 +406,18 @@ export default function HostDashboard() {
   }
 
   return (
-    <main className="min-h-screen p-4 bg-gray-50">
+    <main className="min-h-screen p-4 ">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h1 className="text-2xl font-bold mb-4">Quizmaster dashboard</h1>
-
+        <div className="rounded-lg shadow-lg p-4">
+          <h1 className="text-2xl font-bold mb-4 text-center uppercase tracking-wide underline underline-offset-4">
+            Quizmaster dashboard
+          </h1>
           <PartyCode party={party} />
-
           <QuestionProgress
             party={party}
             handleChangeCurrentQuestion={handleChangeCurrentQuestion}
           />
-
           <AnswersTable party={party} contestants={contestants} />
-
           {party.currentQuestion === party.totalQuestions && (
             <EndQuizButton
               setShowConfirmModal={setShowConfirmModal}
@@ -635,11 +633,11 @@ export default function HostDashboard() {
 
 function PartyCode({ party }: { party: PartyData }) {
   return (
-    <div className="mb-6 p-4 bg-blue-50 rounded-lg flex justify-around items-center">
-      <p className="text-sm text-gray-600">Party code:</p>
-      <p className="text-2xl font-bold text-blue-600 tracking-wider">
-        {party.code}
-      </p>
+    <div className="flex justify-center">
+      <div className="w-fit mt-2 mb-4 flex gap-2 justify-around items-baseline text-violet-800">
+        <p className="text-md uppercase">Party code:</p>
+        <p className="text-2xl font-bold  tracking-wider">{party.code}</p>
+      </div>
     </div>
   );
 }
@@ -762,7 +760,7 @@ function AnswersTable({
 }) {
   return (
     <div className="mb-6">
-      <h2 className="text-lg font-semibold mb-4">
+      <h2 className="font-semibold mb-4">
         Answer status ({contestants.length} contestants)
       </h2>
 
