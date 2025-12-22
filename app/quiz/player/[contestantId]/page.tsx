@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Leaderboard from "@/components/quiz/Leaderboard";
 import { getPusherClient } from "@/lib/pusher/client";
@@ -45,6 +45,7 @@ export default function PlayerView() {
     number,
     number
   > | null>(null);
+  const saveTimers = useRef<Map<number, NodeJS.Timeout>>(new Map());
 
   // Fetch initial data and set up Pusher subscriptions
   useEffect(() => {
@@ -143,6 +144,12 @@ export default function PlayerView() {
     };
 
     fetchData();
+
+    // Cleanup: clear all pending save timers when component unmounts
+    return () => {
+      saveTimers.current.forEach((timer) => clearTimeout(timer));
+      saveTimers.current.clear();
+    };
   }, [contestantId, leaderboard]);
 
   const saveAnswer = useCallback(
@@ -189,11 +196,21 @@ export default function PlayerView() {
   };
 
   const handleAnswerChange = (questionNumber: number, value: string) => {
+    // Clear any existing timer for this question
+    const existingTimer = saveTimers.current.get(questionNumber);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
     const numValue = parseInputValue(value);
     if (numValue !== null) {
       setAnswers((prev) => new Map(prev).set(questionNumber, numValue));
       // Auto-save after 500ms of no typing
-      setTimeout(() => saveAnswer(questionNumber, numValue), 500);
+      const timer = setTimeout(() => {
+        saveAnswer(questionNumber, numValue);
+        saveTimers.current.delete(questionNumber);
+      }, 500);
+      saveTimers.current.set(questionNumber, timer);
     } else {
       // Allow empty or just minus sign while typing
       setAnswers((prev) => {
@@ -202,7 +219,11 @@ export default function PlayerView() {
         return newMap;
       });
       // Auto-save deletion after 500ms of no typing
-      setTimeout(() => saveAnswer(questionNumber, null), 500);
+      const timer = setTimeout(() => {
+        saveAnswer(questionNumber, null);
+        saveTimers.current.delete(questionNumber);
+      }, 500);
+      saveTimers.current.set(questionNumber, timer);
     }
   };
 
