@@ -69,10 +69,11 @@ export default function Leaderboard({
             No contestants submitted answers
           </div>
         )}
-        {correctAnswers && (
+        {correctAnswers && showQuestionBreakdown && (
           <CorrectAnswers
             correctAnswers={correctAnswers}
             totalQuestions={totalQuestions}
+            leaderboard={leaderboard}
           />
         )}
         <div className="mt-6 pt-4 border-t text-center text-sm text-gray-500">
@@ -123,63 +124,37 @@ function LeaderboardContestants({
   };
 
   return (
-    <div className="space-y-3 mb-6">
-      {leaderboard.map((entry, index) => (
-        <div
-          key={entry.contestantId}
-          className={`px-4 py-2 rounded-lg border-2 ${
-            index === 0
-              ? "bg-yellow-50 border-yellow-400"
-              : index === 1
-              ? "bg-gray-50 border-gray-400"
-              : index === 2
-              ? "bg-orange-50 border-orange-400"
-              : "bg-white border-gray-200"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="text-2xl font-bold text-gray-400 w-8">
-                #{index + 1}
-              </div>
+    <div className="mb-6">
+      <div className="flex flex-wrap gap-3 items-center justify-center mb-6">
+        {leaderboard.map((entry, index) => (
+          <div
+            key={entry.contestantId}
+            className={`px-4 py-2 rounded-lg border-2 ${
+              index === 0
+                ? "bg-yellow-50 border-yellow-400"
+                : index === 1
+                ? "bg-gray-50 border-gray-400"
+                : index === 2
+                ? "bg-orange-50 border-orange-400"
+                : "bg-white border-gray-200"
+            }`}
+          >
+            <div className="flex items-center gap-2">
               {getMedalEmoji(index) && (
-                <span className="text-3xl">{getMedalEmoji(index)}</span>
+                <span className="text-2xl">{getMedalEmoji(index)}</span>
               )}
               <div>
-                <div className="text-lg font-semibold">
+                <div className="text-sm font-semibold">
                   {entry.contestantName}
                 </div>
-                {showQuestionBreakdown && (
-                  <div className="text-sm text-gray-600 flex gap-1 mt-1">
-                    {entry.questionScores.map((score, qIdx) => (
-                      <span
-                        key={qIdx}
-                        className={`px-1.5 py-0.5 rounded ${
-                          score >= 25
-                            ? "bg-green-100 text-green-800 font-bold"
-                            : score >= 15
-                            ? "bg-blue-100 text-blue-800"
-                            : score >= 10
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {score}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <div className="text-lg font-bold text-blue-600">
+                  {formatNumber(entry.totalScore)}
+                </div>
               </div>
-            </div>
-            <div className="text-right">
-              <div className="text-3xl font-bold text-blue-600">
-                {formatNumber(entry.totalScore)}
-              </div>
-              <div className="text-sm text-gray-500">points</div>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
@@ -187,25 +162,71 @@ function LeaderboardContestants({
 function CorrectAnswers({
   correctAnswers,
   totalQuestions,
+  leaderboard,
 }: {
   correctAnswers: Record<number, number>;
   totalQuestions: number;
+  leaderboard: LeaderboardEntry[];
 }) {
+  const getScoreColor = (score: number) => {
+    if (score >= 25) return "bg-green-100 text-green-800 font-bold";
+    if (score >= 15) return "bg-blue-100 text-blue-800";
+    if (score >= 10) return "bg-yellow-100 text-yellow-800";
+    return "bg-gray-100 text-gray-600";
+  };
+
   return (
     <div className="mt-6 pt-3 border-t">
-      <h3 className="font-semibold mb-3 text-gray-700">Correct answers:</h3>
-      <div className="space-y-2">
-        {Array.from({ length: totalQuestions }, (_, i) => i + 1).map((q) => (
-          <div
-            key={q}
-            className="flex items-center justify-between p-3 bg-gray-50 rounded-sm border border-gray-200 w-full"
-          >
-            <div className="text-sm font-medium text-gray-700">Q{q}</div>
-            <div className="font-semibold text-gray-900">
-              {formatNumber(correctAnswers[q])}
-            </div>
-          </div>
-        ))}
+      <h3 className="font-semibold mb-3 text-gray-700">Question Details:</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border border-gray-300 px-3 py-2 text-left text-sm font-semibold">
+                Q
+              </th>
+              <th className="border border-gray-300 px-3 py-2 text-left text-sm font-semibold">
+                Correct
+              </th>
+              {leaderboard.map((entry, idx) => (
+                <th
+                  key={entry.contestantId}
+                  className="border border-gray-300 px-3 py-2 text-center text-sm font-semibold"
+                >
+                  {entry.contestantName}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {Array.from({ length: totalQuestions }, (_, i) => i + 1).map(
+              (q) => (
+                <tr key={q} className="hover:bg-gray-50">
+                  <td className="border border-gray-300 px-3 py-2 text-sm font-medium">
+                    {q}
+                  </td>
+                  <td className="border border-gray-300 px-3 py-2 text-sm font-semibold">
+                    {formatNumber(correctAnswers[q])}
+                  </td>
+                  {leaderboard.map((entry) => (
+                    <td
+                      key={entry.contestantId}
+                      className="border border-gray-300 px-3 py-2 text-center"
+                    >
+                      <span
+                        className={`inline-block px-2 py-1 rounded text-sm ${getScoreColor(
+                          entry.questionScores[q - 1]
+                        )}`}
+                      >
+                        {entry.questionScores[q - 1]}
+                      </span>
+                    </td>
+                  ))}
+                </tr>
+              )
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
