@@ -66,8 +66,8 @@ export default function Home() {
 
     if (!showNameInput) {
       // First step: validate code and show name input
-      if (!joinCode || joinCode.trim().length !== 6) {
-        setError("Please enter a valid 6-character code");
+      if (!joinCode || joinCode.trim().length !== 4) {
+        setError("Please enter a valid 4-character code");
         return;
       }
       setShowNameInput(true);
@@ -211,9 +211,9 @@ function CodeEntry({
         type="text"
         placeholder="Enter party code"
         value={joinCode}
-        onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 6))}
+        onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 4))}
         className="w-full px-4 py-3 border text-lg border-gray-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-        maxLength={6}
+        maxLength={4}
       />
 
       {showNameInput && (
